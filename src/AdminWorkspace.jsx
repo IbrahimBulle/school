@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiDelete, apiDownload, apiGet, apiPost, apiPut } from "./api";
+import { FiBookOpen, FiCheck, FiClock, FiDownload, FiPlus, FiTrash2, FiUploadCloud, FiUsers } from "react-icons/fi";
 import FeeManagement from "./FeeManagement";
 
 const read = (row, ...keys) => {
@@ -51,12 +52,13 @@ function Heading({ eyebrow, title, subtitle, actions }) {
     </div>
   );
 }
-function ActionButton({ children, onClick, secondary = false }) {
+function ActionButton({ children, onClick, secondary = false, icon: Icon }) {
   return (
     <button
       className={`button ${secondary ? "secondary" : "primary"}`}
       onClick={onClick}
     >
+      {Icon && <Icon aria-hidden="true" />}
       {children}
     </button>
   );
@@ -90,6 +92,8 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
   const [studentPageResult, setStudentPageResult] = useState(null);
   const [studentPage, setStudentPage] = useState(1);
   const [studentPageLoading, setStudentPageLoading] = useState(false);
+  const [savingAction, setSavingAction] = useState(false);
+  const savingActionRef = useRef(false);
 
   useEffect(() => {
     let current = true;
@@ -195,6 +199,7 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
       );
     } catch (actionError) {
       setError(actionError.message);
+      onNotify(actionError.message || "Could not reset the student password.", "error");
     }
   }
   function closeDialog(message) {
@@ -203,6 +208,9 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
   }
   async function submitAction(event) {
     event.preventDefault();
+    if (savingActionRef.current) return;
+    savingActionRef.current = true;
+    setSavingAction(true);
     setError("");
     const actionType = typeof dialog === "string" ? dialog : dialog.type;
     const form = new FormData(event.currentTarget);
@@ -242,10 +250,22 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
         await apiPut(`/units/${dialog.record.id}`, { name: getText("name") });
         closeDialog("Unit updated");
       } else if (actionType === "assignment") {
+        const classId = getText("classId");
+        const unitId = getText("unitId");
+        const duplicate = assignments.some(
+          (assignment) =>
+            String(read(assignment, "classId", "ClassID")) === classId &&
+            String(read(assignment, "unitId", "UnitID")) === unitId,
+        );
+        if (duplicate) {
+          throw new Error(
+            "This subject is already assigned to a teacher for the selected class.",
+          );
+        }
         await apiPost("/teaching_assignments", {
           teacherId: getText("teacherId"),
-          classId: getText("classId"),
-          unitId: getText("unitId"),
+          classId,
+          unitId,
         });
         closeDialog("Teaching assignment created");
       } else if (actionType === "student-status") {
@@ -345,7 +365,12 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
       }
       refresh();
     } catch (submitError) {
-      setError(submitError.message || "Could not save your changes.");
+      const message = submitError.message || "Could not save your changes.";
+      setError(message);
+      onNotify(message, "error");
+    } finally {
+      savingActionRef.current = false;
+      setSavingAction(false);
     }
   }
 
@@ -369,6 +394,7 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
       refresh();
     } catch (actionError) {
       setError(actionError.message);
+      onNotify(actionError.message || "Could not update the mark.", "error");
     }
   }
   async function removeRecord(path, label) {
@@ -379,6 +405,7 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
       refresh();
     } catch (actionError) {
       setError(actionError.message);
+      onNotify(actionError.message || `Could not delete the ${label}.`, "error");
     }
   }
   async function exportReport() {
@@ -481,6 +508,8 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
         onExport={exportReport}
       />
     );
+  if (page === "Data backup")
+    content = <DataBackupPage onNotify={onNotify} />;
 
   return (
     <>
@@ -511,6 +540,7 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
           dialog={dialog}
           data={{ classes, teachers, units, students, terms, feeStructures }}
           error={error}
+          saving={savingAction}
           onSubmit={submitAction}
           onClose={() => {
             setDialog("");
@@ -518,6 +548,42 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
           }}
         />
       )}
+    </>
+  );
+}
+
+function DataBackupPage({ onNotify }) {
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function restore() {
+    if (!file) return;
+    if (!window.confirm("Restoring this backup replaces all current school records. Continue?")) return;
+    setBusy(true); setError("");
+    try {
+      const backup = JSON.parse(await file.text());
+      await apiPost("/admin/backup/restore", backup);
+      setFile(null);
+      onNotify("School data restored successfully");
+    } catch (err) {
+      setError(err.message || "Could not restore this backup.");
+    } finally { setBusy(false); }
+  }
+  return (
+    <>
+      <Heading eyebrow="ADMIN TOOLS" title="Data backup" subtitle="Download a copy of school records or restore records from a backup file." />
+      {error && <Notice error>{error}</Notice>}
+      <section className="panel" style={{ maxWidth: 760, padding: 24 }}>
+        <h2>Download a backup</h2>
+        <p>Creates a JSON file containing students, staff, classes, marks, fee records, payments, and related school data.</p>
+        <ActionButton icon={FiDownload} onClick={async () => { setBusy(true); setError(""); try { await apiDownload("/admin/backup", "school-backup.json"); onNotify("Backup downloaded"); } catch (err) { setError(err.message || "Could not download backup."); } finally { setBusy(false); } }}>{busy ? "Working…" : "Download backup"}</ActionButton>
+      </section>
+      <section className="panel" style={{ maxWidth: 760, padding: 24, marginTop: 18 }}>
+        <h2>Restore from a backup</h2>
+        <p>Choose a backup JSON file. Restoring replaces all current records in this school database.</p>
+        <label className="admin-field">Backup file<input type="file" accept="application/json,.json" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
+        <ActionButton secondary icon={FiUploadCloud} onClick={restore}>{busy ? "Restoring…" : "Restore backup"}</ActionButton>
+      </section>
     </>
   );
 }
@@ -973,12 +1039,13 @@ function FinanceOverview({ classes }) {
   );
 }
 
-function LiveStat({ label, value, detail, icon }) {
+function LiveStat({ label, value, detail }) {
+  const StatIcon = label === "Approved marks" ? FiCheck : label === "Marks pending" ? FiClock : label === "Classes" ? FiBookOpen : FiUsers;
   return (
     <div className="stat-card">
       <div className="stat-top">
         <span>{label}</span>
-        <i className="stat-icon blue">{icon}</i>
+        <i className="stat-icon blue"><StatIcon aria-hidden="true" /></i>
       </div>
       <strong className="stat-value">{value}</strong>
       <div className="stat-bottom">{detail}</div>
@@ -1003,7 +1070,7 @@ function StudentsPage({
         eyebrow="SCHOOL DIRECTORY"
         title="Students"
         subtitle="Student records loaded from the school database."
-        actions={<ActionButton onClick={open}>＋ Add student</ActionButton>}
+        actions={<ActionButton onClick={open} icon={FiPlus}>Add student</ActionButton>}
       />
       <div className="toolbar">
         <span className="result-count">
@@ -1106,7 +1173,7 @@ function TeachersPage({ teachers, assignments, open, edit }) {
         eyebrow="SCHOOL DIRECTORY"
         title="Teachers"
         subtitle="Manage staff profiles and their class and subject assignments."
-        actions={<ActionButton onClick={open}>＋ Add teacher</ActionButton>}
+        actions={<ActionButton onClick={open} icon={FiPlus}>Add teacher</ActionButton>}
       />
       <div className="panel table-panel">
         <div className="table-scroll">
@@ -1197,13 +1264,13 @@ function ClassesPage({
         subtitle="Maintain class groups, subjects, and teacher assignments."
         actions={
           <>
-            <ActionButton secondary onClick={createUnit}>
-              ＋ Add unit
+            <ActionButton secondary onClick={createUnit} icon={FiPlus}>
+              Add unit
             </ActionButton>
-            <ActionButton secondary onClick={createAssignment}>
+            <ActionButton secondary onClick={createAssignment} icon={FiUsers}>
               Assign teacher
             </ActionButton>
-            <ActionButton onClick={createClass}>＋ Create class</ActionButton>
+            <ActionButton onClick={createClass} icon={FiPlus}>Create class</ActionButton>
           </>
         }
       />
@@ -1237,9 +1304,10 @@ function ClassesPage({
                 </button>
                 <button
                   className="row-menu"
+                  aria-label={`Delete class ${read(item, "name", "Name")}`}
                   onClick={() => remove(`/classes/${idOf(item)}`, "class")}
                 >
-                  ×
+                  <FiTrash2 />
                 </button>
               </div>
             ))}
@@ -1275,9 +1343,10 @@ function ClassesPage({
                 </button>
                 <button
                   className="row-menu"
+                  aria-label={`Delete unit ${read(item, "name", "Name")}`}
                   onClick={() => remove(`/units/${idOf(item)}`, "unit")}
                 >
-                  ×
+                  <FiTrash2 />
                 </button>
               </div>
             ))}
@@ -1316,6 +1385,7 @@ function ClassesPage({
                 </span>
                 <button
                   className="row-menu"
+                  aria-label="Remove teaching assignment"
                   onClick={() =>
                     remove(
                       `/teaching_assignments/${idOf(item)}`,
@@ -1323,7 +1393,7 @@ function ClassesPage({
                     )
                   }
                 >
-                  ×
+                  <FiTrash2 />
                 </button>
               </div>
             );
@@ -1348,7 +1418,7 @@ function AcademicsPage({ terms, marks, create, edit, onStatus, onDeleteMark }) {
         eyebrow="ACADEMIC MANAGEMENT"
         title="Academics"
         subtitle="Manage terms and review marks submitted by teachers."
-        actions={<ActionButton onClick={create}>＋ Create term</ActionButton>}
+        actions={<ActionButton onClick={create} icon={FiPlus}>Create term</ActionButton>}
       />
       <div className="panel">
         <div className="panel-title">
@@ -1764,7 +1834,7 @@ function ReportsPage({ students, teachers, classes, terms, marks, onExport }) {
         title="Reports"
         subtitle="Current totals derived from live school records."
         actions={
-          <ActionButton onClick={onExport}>⇩ Export students CSV</ActionButton>
+          <ActionButton onClick={onExport} icon={FiDownload}>Export students CSV</ActionButton>
         }
       />
       <div className="stat-grid">
@@ -1837,7 +1907,7 @@ function AccessPage({ users }) {
         subtitle="View registered accounts and their assigned roles."
       />
       <div className="access-callout">
-        <span>♙</span>
+        <span><FiUsers aria-hidden="true" /></span>
         <div>
           <strong>First sign-in password change</strong>
           <p>
@@ -1883,7 +1953,7 @@ function AccessPage({ users }) {
   );
 }
 
-function AdminDialog({ dialog, data, error, onSubmit, onClose }) {
+function AdminDialog({ dialog, data, error, saving, onSubmit, onClose }) {
   const type = typeof dialog === "string" ? dialog : dialog.type;
   const record = dialog.record || {};
   const title =
@@ -2386,11 +2456,11 @@ function AdminDialog({ dialog, data, error, onSubmit, onClose }) {
         )}
         {error && <div className="modal-note error-text">{error}</div>}
         <div className="modal-actions">
-          <button type="button" className="button secondary" onClick={onClose}>
+          <button type="button" className="button secondary" onClick={onClose} disabled={saving}>
             Cancel
           </button>
-          <button className="button primary" type="submit">
-            Save
+          <button className="button primary" type="submit" disabled={saving}>
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </form>

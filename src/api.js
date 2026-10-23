@@ -18,7 +18,11 @@ async function request(path, options = {}) {
   }
 
   const contentType = response.headers.get('content-type') || ''
-  return contentType.includes('application/json') ? response.json() : null
+  const responseText = await response.text()
+  if (!responseText.trim()) return null
+  return contentType.includes('application/json')
+    ? JSON.parse(responseText)
+    : null
 }
 
 export function login({ username, password }) {

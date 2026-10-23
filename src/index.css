@@ -1,4 +1,4 @@
-﻿@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -190,6 +190,34 @@ select:focus-visible {
   text-align: center;
   font-size: 17px;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.icon svg,
+.button svg,
+.row-menu svg,
+.stat-icon svg,
+.icon-button svg,
+.chevron svg,
+.more svg,
+.toast svg {
+  width: 1em;
+  height: 1em;
+  stroke-width: 2;
+}
+.nav-item .icon svg {
+  width: 16px;
+  height: 16px;
+}
+.simple-icon svg,
+.security-icon svg,
+.class-card-icon svg,
+.access-callout > span svg {
+  width: 1em;
+  height: 1em;
+  stroke-width: 1.8;
 }
 .nav-count {
   margin-left: auto;
@@ -935,7 +963,8 @@ th input {
   color: #a1a8a7;
   font-size: 9px;
 }
-.footer > div {
+.footer > div,
+.footer > nav {
   display: flex;
   gap: 9px;
   align-items: center;
@@ -1560,9 +1589,14 @@ th input {
   color: #536c5c;
   font-size: 9px;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
 }
-.class-card > button span {
-  margin-left: 4px;
+.class-card > button svg {
+  width: 13px;
+  height: 13px;
 }
 .gradebook-banner {
   display: flex;
@@ -2156,6 +2190,10 @@ th input {
   color: #b7a865;
   font-size: 27px;
 }
+.login-sun svg {
+  width: 28px;
+  height: 28px;
+}
 .login-book {
   position: absolute;
   width: 140px;
@@ -2171,6 +2209,11 @@ th input {
   font: 800 39px "Manrope";
   transform: rotate(-9deg);
 }
+.login-book svg {
+  width: 72px;
+  height: 72px;
+  stroke-width: 1.35;
+}
 .login-plant {
   position: absolute;
   bottom: 25px;
@@ -2179,12 +2222,21 @@ th input {
   color: #849574;
   transform: rotate(-18deg);
 }
+.login-plant svg {
+  width: 54px;
+  height: 54px;
+  stroke-width: 1.4;
+}
 .login-spark {
   position: absolute;
   left: 39px;
   top: 120px;
   font-size: 22px;
   color: #b3a66c;
+}
+.login-spark svg {
+  width: 22px;
+  height: 22px;
 }
 .login-quote {
   position: absolute;
@@ -2545,8 +2597,8 @@ th input {
 }
 .toast {
   position: fixed;
-  bottom: 23px;
-  left: 50%;
+  top: 50px;
+  right: 10%;
   transform: translateX(-50%);
   z-index: 30;
   padding: 11px 16px;
@@ -2561,6 +2613,20 @@ th input {
 }
 .toast span {
   color: #b6d29b;
+}
+.toast.toast-error {
+  background: #7b2c2c;
+}
+.toast.toast-error span {
+  color: #ffd0c9;
+}
+.toast button {
+  border: 0;
+  padding: 0 0 0 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 16px;
 }
 @media (min-width: 1500px) {
   .content {

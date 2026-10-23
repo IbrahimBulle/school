@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FiArrowRight, FiBookOpen, FiCalendar, FiGrid, FiUsers } from "react-icons/fi";
 import { apiGet, apiPost, apiPut } from "./api";
 
 const get = (row, ...keys) => {
@@ -84,7 +85,7 @@ export function TeacherDashboard({ onOpen }) {
           <span className="eyebrow">TEACHING OVERVIEW</span>
           <h1>Your teaching dashboard</h1>
           <p>
-            {get(term, "name", "Name") || "Active term"} · Your assigned classes
+            {get(term, "name", "Name") || "Active term"} &middot; Your assigned classes
             and units
           </p>
         </div>
@@ -97,7 +98,7 @@ export function TeacherDashboard({ onOpen }) {
       </header>
       {error && <div className="admin-notice error">{error}</div>}
       {loading ? (
-        <div className="admin-loading">Loading your teaching overview…</div>
+        <div className="admin-loading">Loading your teaching overview...</div>
       ) : (
         <>
           <div className="stat-grid">
@@ -141,14 +142,14 @@ export function TeacherDashboard({ onOpen }) {
             <div className="class-card-grid">
               {assignments.map((a) => (
                 <article className="class-card" key={id(a)}>
-                  <div className="class-card-icon blue">▦</div>
+                  <div className="class-card-icon blue"><FiBookOpen aria-hidden="true" /></div>
                   <span className="status active">
                     <i />
                     Assigned
                   </span>
-                  {get(a, "className", "ClassName")}
+                  <h3>{get(a, "className", "ClassName")}</h3>
                   <button onClick={() => onOpen("Gradebook")}>
-                    Enter marks <span>→</span>
+                    Enter marks <FiArrowRight aria-hidden="true" />
                   </button>
                 </article>
               ))}
@@ -221,25 +222,25 @@ export function TeacherClasses() {
       </header>
       {error && <div className="admin-notice error">{error}</div>}
       {loading ? (
-        <div className="admin-loading">Loading classes…</div>
+        <div className="admin-loading">Loading classes...</div>
       ) : (
         <div className="class-card-grid">
           {classes.map((c) => {
             const students = studentsByClass[c.id];
             return (
               <article className="class-card" key={c.id}>
-                <div className="class-card-icon blue">▦</div>
+                <div className="class-card-icon blue"><FiBookOpen aria-hidden="true" /></div>
                 <span className="status active">
                   <i />
                   Assigned
                 </span>
                 <h3>{c.name}</h3>
-                <p>{c.units.map((u) => u.name).join(" · ")}</p>
+                <p>{c.units.map((u) => u.name).join(" / ")}</p>
                 <div className="class-card-meta">
                   <span>
                     {students && Array.isArray(students)
                       ? students.length
-                      : "—"}{" "}
+                      : "-"}{" "}
                     students
                   </span>
                   <span>
@@ -249,7 +250,7 @@ export function TeacherClasses() {
                 </div>
                 <button onClick={() => toggle(c.id)}>
                   {expanded === c.id ? "Hide students" : "View students"}{" "}
-                  <span>→</span>
+                  <FiArrowRight aria-hidden="true" />
                 </button>
                 {expanded === c.id && (
                   <div className="simple-list">
@@ -257,7 +258,7 @@ export function TeacherClasses() {
                       students.map((s) => (
                         <div className="assessment-row" key={id(s)}>
                           <div className="simple-copy">
-                            <strong>{get(s, "name", "Name")}</strong>
+                            {get(s, "name", "Name") || "Unnamed student"}
                             <span>
                               {get(s, "admissionNumber", "AdmissionNumber")}
                             </span>
@@ -265,7 +266,7 @@ export function TeacherClasses() {
                         </div>
                       ))
                     ) : (
-                      <p>{students?.error || "Loading students…"}</p>
+                      <p>{students?.error || "Loading students..."}</p>
                     )}
                     {Array.isArray(students) && !students.length && (
                       <p>No students are enrolled in this class.</p>
@@ -310,7 +311,7 @@ export function TeacherStudents() {
     };
   }, [assignments]);
   const filtered = students.filter((s) =>
-    `${get(s, "name", "Name")} ${get(s, "admissionNumber", "AdmissionNumber")}`
+    get(s, "name", "Name")
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
@@ -331,7 +332,7 @@ export function TeacherStudents() {
       </header>
       {error && <div className="admin-notice error">{error}</div>}
       {loading ? (
-        <div className="admin-loading">Loading student list…</div>
+        <div className="admin-loading">Loading student list...</div>
       ) : (
         <section className="panel">
           <div className="panel-title">
@@ -343,9 +344,9 @@ export function TeacherStudents() {
           <div className="simple-list">
             {filtered.map((s) => (
               <div className="assessment-row" key={id(s)}>
-                <span className="simple-icon">♙</span>
+                <span className="simple-icon"><FiUsers aria-hidden="true" /></span>
                 <div className="simple-copy">
-                  <strong>{get(s, "name", "Name")}</strong>
+                  {get(s, "name", "Name") || "Unnamed student"}
                   <span>{get(s, "admissionNumber", "AdmissionNumber")}</span>
                 </div>
                 <span>{get(s, "classId", "ClassID")}</span>
@@ -491,7 +492,7 @@ export function Gradebook() {
         </div>
       )}
       {loading ? (
-        <div className="admin-loading">Loading gradebook…</div>
+        <div className="admin-loading">Loading gradebook...</div>
       ) : (
         <>
           <section className="panel">
@@ -527,8 +528,8 @@ export function Gradebook() {
               <>
                 <small className="teacher-roster-count">
                   {rosterLoading
-                    ? "Loading students…"
-                    : `${students.length} students in this class`}
+                    ? "Loading students..."
+                      : "-"}{" "}
                 </small>
                 <label className="field-label">Unit</label>
                 <select
@@ -551,7 +552,7 @@ export function Gradebook() {
                 <select className="form-input" name="studentId" required>
                   <option value="">
                     {rosterLoading
-                      ? "Loading students…"
+                      ? "Loading students..."
                       : students.length
                         ? "Select student"
                         : "No students in this class"}
@@ -560,7 +561,7 @@ export function Gradebook() {
                     .filter(canSubmitForStudent)
                     .map((s) => (
                       <option key={id(s)} value={id(s)}>
-                        {get(s, "name", "Name")} ·{" "}
+                        {get(s, "name", "Name")} -{" "}
                         {get(s, "admissionNumber", "AdmissionNumber")}
                       </option>
                     ))}
@@ -582,7 +583,7 @@ export function Gradebook() {
                     !students.some(canSubmitForStudent)
                   }
                 >
-                  {busy ? "Saving…" : "Submit mark for approval"}
+                  {busy ? "Saving..." : "Submit mark for approval"}
                 </button>
               </form>
             )}
@@ -593,7 +594,7 @@ export function Gradebook() {
                 <div>
                   <h3>Submitted marks</h3>
                   <p>
-                    {get(selected, "className", "ClassName")} ·{" "}
+                    {get(selected, "className", "ClassName")} -{" "}
                     {get(selected, "unitName", "UnitName")}
                   </p>
                 </div>
@@ -666,13 +667,15 @@ function MarkRow({ mark, onSave }) {
 }
 
 function Stat({ label, value, detail }) {
+  const Icon = label === "Assigned units" ? FiBookOpen : label === "Classes" ? FiGrid : label === "Students" ? FiUsers : FiCalendar;
   return (
     <div className="stat-card">
-      {" "}
-      <br />
-      <span>{label}</span> <br />
-      <strong>{value}</strong> <br />
-      <small>{detail}</small>
+      <div className="stat-top">
+        <span>{label}</span>
+        <i className="stat-icon blue"><Icon aria-hidden="true" /></i>
+      </div>
+      <strong className="stat-value">{value}</strong>
+      <div className="stat-bottom">{detail}</div>
     </div>
   );
 }

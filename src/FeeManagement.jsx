@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiGet, apiPost, apiPut, apiDelete } from "./api";
 
 const get = (row, ...keys) => {
@@ -34,6 +34,7 @@ export default function FeeManagement({ onNotify }) {
   const [invoices, setInvoices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [revision, setRevision] = useState(0);
   const [paymentRefresh, setPaymentRefresh] = useState(0);
   const visiblePayments = payments.filter((payment) => {
@@ -130,6 +131,8 @@ export default function FeeManagement({ onNotify }) {
 
   async function save(event) {
     event.preventDefault();
+    if (busyRef.current) return;
+    busyRef.current = true;
     const form = new FormData(event.currentTarget);
     const value = (key) => String(form.get(key) || "").trim();
     setBusy(true);
@@ -182,12 +185,16 @@ export default function FeeManagement({ onNotify }) {
       setRevision((n) => n + 1);
     } catch (saveError) {
       setError(saveError.message);
+      onNotify(saveError.message || "Could not save the fee record.", "error");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
 
   async function issueInvoices() {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setError("");
     try {
@@ -198,12 +205,17 @@ export default function FeeManagement({ onNotify }) {
       setRevision((n) => n + 1);
     } catch (issueError) {
       setError(issueError.message);
+      onNotify(issueError.message || "Could not issue invoices.", "error");
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
 
   async function resetTemplate(template) {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
     const next = !Boolean(get(template, "active", "Active"));
     try {
       await apiPut(`/fee-templates/${id(template)}`, {
@@ -215,6 +227,10 @@ export default function FeeManagement({ onNotify }) {
       setRevision((n) => n + 1);
     } catch (actionError) {
       setError(actionError.message);
+      onNotify(actionError.message || "Could not update the fee template.", "error");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
     }
   }
 
@@ -225,12 +241,19 @@ export default function FeeManagement({ onNotify }) {
       )
     )
       return;
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
     try {
       await apiDelete(`/fee-template-items/${id(item)}`);
       onNotify("Template item removed; existing invoices are unchanged");
       setRevision((n) => n + 1);
     } catch (actionError) {
       setError(actionError.message);
+      onNotify(actionError.message || "Could not remove the fee item.", "error");
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
     }
   }
 

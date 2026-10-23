@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FiBookOpen, FiShield, FiStar, FiX } from "react-icons/fi";
 import { apiDownload, apiGet, apiPut } from "./api";
 
 const get = (row, ...keys) => {
@@ -23,7 +24,7 @@ const rowKey = (row) => {
   return missingRowKeys.get(row);
 };
 const money = (value) =>
-  `KES ${Number(value || 0).toLocaleString("en-KE", { maximumFractionDigits: 2 })}`;
+                  <strong>{value || "-"}</strong>
 const message = (error) =>
   error?.message || "Could not load your school information.";
 
@@ -98,7 +99,7 @@ export function StudentDashboard({ onOpen }) {
           0,
         ) / results.length
       ).toFixed(1)
-    : "—";
+    : "-";
 
   return (
     <>
@@ -108,7 +109,7 @@ export function StudentDashboard({ onOpen }) {
           <h1>Habari, {name}</h1>
           <p>
             {get(term, "name", "Name") || "Your school"}{" "}
-            {get(term, "year", "Year")} · Your learning and school account.
+            {get(term, "year", "Year")} - Your learning and school account.
           </p>
         </div>
 
@@ -123,13 +124,13 @@ export function StudentDashboard({ onOpen }) {
       {error && <div className="admin-notice error">{error}</div>}
 
       {loading ? (
-        <div className="admin-loading">Loading your school dashboard…</div>
+        <div className="admin-loading">Loading your school dashboard...</div>
       ) : (
         <>
           <div className="stat-grid">
             <Metric
               label="Term average"
-              value={average === "—" ? average : `${average}%`}
+              value={average === "-" ? average : `${average}%`}
               detail="Approved results this term"
               br
             />
@@ -175,7 +176,7 @@ export function StudentDashboard({ onOpen }) {
               <div className="simple-list">
                 {results.slice(0, 5).map((row) => (
                   <div className="assessment-row" key={rowKey(row)}>
-                    <span className="simple-icon">▤</span>
+                    <span className="simple-icon"><FiBookOpen aria-hidden="true" /></span>
 
                     <div className="simple-copy">
                       <strong>{get(row, "unitName", "UnitName")}</strong>
@@ -210,7 +211,7 @@ export function StudentDashboard({ onOpen }) {
               <div className="simple-list">
                 {units.map((unit) => (
                   <div className="assessment-row" key={get(unit, "id", "ID")}>
-                    <span className="simple-icon">▦</span>
+                    <span className="simple-icon"><FiBookOpen aria-hidden="true" /></span>
 
                     <div className="simple-copy">
                       <strong>{get(unit, "name", "Name")}</strong>
@@ -469,7 +470,7 @@ export function StudentResults() {
         <strong>Important notice</strong>
         <p>
           Grades are reported using the school grading scale from A to E;
-          “Repeat” indicates that the student is required to repeat the unit.
+          Grades use the school scale from A to E; "Repeat" means the student must repeat the unit.
           An asterisk (*) indicates that a mark is missing or has not yet been
           recorded.
         </p>
@@ -517,7 +518,7 @@ export function StudentProfile({ onNotify }) {
       </header>
       {error && <div className="admin-notice error">{error}</div>}
       {loading ? (
-        <div className="admin-loading">Loading your profile…</div>
+        <div className="admin-loading">Loading your profile...</div>
       ) : (
         <div className="profile-layout">
           <section className="panel student-profile-card">
@@ -564,7 +565,7 @@ export function StudentProfile({ onNotify }) {
               ].map(([label, value]) => (
                 <div key={label}>
                   <span>{label}</span>
-                  <strong>{value || "—"}</strong>
+                  <strong>{value || "-"}</strong>
                 </div>
               ))}
             </div>
@@ -573,7 +574,7 @@ export function StudentProfile({ onNotify }) {
             <h3>Account security</h3>
             <p>Keep your account secure by using a password only you know.</p>
             <div className="security-row">
-              <span className="security-icon">♧</span>
+              <span className="security-icon"><FiShield aria-hidden="true" /></span>
               <span>
                 <strong>Password</strong>
                 <small>Change your password regularly</small>
@@ -586,7 +587,7 @@ export function StudentProfile({ onNotify }) {
               </button>
             </div>
             <div className="security-tip">
-              <span>✦</span>
+              <span><FiStar aria-hidden="true" /></span>
               <p>
                 If you forget your password, ask the school administrator to
                 reset it. Your school records will stay safe.
@@ -603,7 +604,7 @@ export function StudentProfile({ onNotify }) {
               className="modal-close"
               onClick={() => setChanging(false)}
             >
-              ×
+              <FiX aria-hidden="true" />
             </button>
             <h2>Change password</h2>
             <label className="field-label">Current password</label>
@@ -639,7 +640,7 @@ export function StudentProfile({ onNotify }) {
                 Cancel
               </button>
               <button className="button primary" disabled={saving}>
-                {saving ? "Saving…" : "Save password"}
+                {saving ? "Saving..." : "Save password"}
               </button>
             </div>
           </form>
