@@ -163,6 +163,7 @@ function App() {
 
   async function handleLogin(credentials) {
     const result = await loginRequest(credentials);
+    await apiGet("/session");
     const authenticatedRole = result?.role;
     if (!["admin", "teacher", "student"].includes(authenticatedRole)) {
       throw new Error("The server returned an invalid account role.");
