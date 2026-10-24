@@ -191,17 +191,17 @@ function App() {
   if (sessionLoading)
     return <div className="session-restore">Restoring your session</div>;
 
-  if (!school || setupOpen)
-    return <SchoolSetup
-      initialSchool={school}
-      firstRun={!school}
-      onCancel={() => setSetupOpen(false)}
-      onSave={(details) => {
-        localStorage.setItem("schoolmanagement.school", JSON.stringify(details));
-        setSchool(details);
-        setSetupOpen(false);
-      }}
-    />;
+  // if (!school || setupOpen)
+  //   return <SchoolSetup
+  //     initialSchool={school}
+  //     firstRun={!school}
+  //     onCancel={() => setSetupOpen(false)}
+  //     onSave={(details) => {
+  //       localStorage.setItem("schoolmanagement.school", JSON.stringify(details));
+  //       setSchool(details);
+  //       setSetupOpen(false);
+  //     }}
+  //   />;
 
   if (login)
     return (
