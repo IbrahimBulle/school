@@ -100,7 +100,8 @@ function App() {
   const [login, setLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
- const [school, setSchool] = useState(
+  // const [school, setSchool] = useState(readSchoolSetup);
+  const [school, setSchool] = useState(
   () =>
     readSchoolSetup() || {
       name: "Notstar Academy",
@@ -109,7 +110,7 @@ function App() {
       logo: "",
     },
 );
-  // const [setupOpen, setSetupOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   const [sessionLoading, setSessionLoading] = useState(true);
   useEffect(() => {
