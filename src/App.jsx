@@ -15,6 +15,7 @@ import {
 import AdminWorkspace from "./AdminWorkspace";
 import { TeacherDashboard as LiveTeacherDashboard, TeacherClasses as LiveTeacherClasses, TeacherStudents as LiveTeacherStudents, Gradebook as LiveGradebook } from "./TeacherWorkspace";
 import { StudentDashboard as LiveStudentDashboard, StudentResults as LiveStudentResults, StudentProfile as LiveStudentProfile } from "./StudentWorkspace";
+import SchoolSetup, { readSchoolSetup } from "./SchoolSetup";
 
 const navByRole = {
   admin: [
@@ -30,6 +31,7 @@ const navByRole = {
     {
       group: "SCHOOL",
       items: [
+        ["Config", FiSettings],
         ["Academics", FiBookOpen],
         ["Fees & payments", FiDollarSign],
         ["Reports", FiFileText],
@@ -98,6 +100,8 @@ function App() {
   const [login, setLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [school, setSchool] = useState(readSchoolSetup);
+  const [setupOpen, setSetupOpen] = useState(false);
 
   const [sessionLoading, setSessionLoading] = useState(true);
   useEffect(() => {
@@ -187,6 +191,18 @@ function App() {
   if (sessionLoading)
     return <div className="session-restore">Restoring your session</div>;
 
+  if (!school || setupOpen)
+    return <SchoolSetup
+      initialSchool={school}
+      firstRun={!school}
+      onCancel={() => setSetupOpen(false)}
+      onSave={(details) => {
+        localStorage.setItem("schoolmanagement.school", JSON.stringify(details));
+        setSchool(details);
+        setSetupOpen(false);
+      }}
+    />;
+
   if (login)
     return (
       <>
@@ -195,6 +211,7 @@ function App() {
         onNotify={notify}
         showPassword={showPassword}
         setShowPassword={setShowPassword}
+        school={school}
       />
       <Toast toast={toast} onDismiss={() => { if (toastTimer.current) window.clearTimeout(toastTimer.current); toastTimer.current = null; setToast(null); }} />
       </>
@@ -229,18 +246,17 @@ function App() {
           </button>
           </div>
           <div>
-            <strong>Northstar</strong>
-            <small>ACADEMY</small>
+            {school.logo ? <img className="brand-logo" src={school.logo} alt="" /> : <><strong>{school.name}</strong><small>{school.level || "SCHOOL"}</small></>}
           </div>
         </div>
-        <div className="school-switch">
-          <div className="school-emblem">N</div>
+        <button type="button" className="school-switch" onClick={() => setSetupOpen(true)} aria-label="Edit school details">
+          <div className="school-emblem">{school.logo ? <img src={school.logo} alt="" /> : school.name.slice(0, 1).toUpperCase()}</div>
           <div className="school-meta">
-            <strong>Northstar Academy</strong>
-            <small>Primary & Junior</small>
+            <strong>{school.name}</strong>
+            <small>{school.level || school.location || "School profile"}</small>
           </div>
           <span className="chevron"><FiChevronDown /></span>
-        </div>
+        </button>
         <nav className="side-nav" aria-label="Main navigation">
           {activeNav.map((section) => (
             <div className="nav-section" key={section.group}>
@@ -321,8 +337,19 @@ function App() {
         </header>
 
         <div className="content">
-          {role === "admin" && (
-            <AdminWorkspace page={page} search={search} onNotify={notify} />
+          {role === "admin" && page === "Config" ? (
+            <SchoolSetup
+              embedded
+              initialSchool={school}
+              onCancel={() => setPage("Overview")}
+              onSave={(details) => {
+                localStorage.setItem("schoolmanagement.school", JSON.stringify(details));
+                setSchool(details);
+                notify("School configuration saved");
+              }}
+            />
+          ) : role === "admin" && (
+            <AdminWorkspace page={page} search={search} onNotify={notify} school={school} />
           )}
           {role === "teacher" && page === "Overview" && (
             <LiveTeacherDashboard onOpen={setPage} />
@@ -337,7 +364,7 @@ function App() {
           {role === "student" && page === "Overview" && (
             <LiveStudentDashboard onOpen={setPage} />
           )}
-          {role === "student" && page === "My results" && <LiveStudentResults />}
+          {role === "student" && page === "My results" && <LiveStudentResults school={school} />}
           {role === "student" && page === "My fees" && (
             <StudentFees onNotify={notify} />
           )}
@@ -345,7 +372,7 @@ function App() {
             <LiveStudentProfile onNotify={notify} />
           )}
           <footer className="footer">
-            <span>&copy; 2026 Northstar Academy</span>
+            <span>&copy; {new Date().getFullYear()} {school.name}</span>
             <nav aria-label="Footer links">
               <button onClick={() => notify("Help centre is coming soon")}>
                 Help centre
@@ -758,6 +785,7 @@ function LoginScreen({
   onNotify,
   showPassword,
   setShowPassword,
+  school,
 }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -789,8 +817,7 @@ function LoginScreen({
             <FiBookOpen aria-hidden="true" />
           </div>
           <div>
-            <strong>Northstar</strong>
-            <small>ACADEMY</small>
+            {school.logo ? <img className="brand-logo" src={school.logo} alt="" /> : <><strong>{school.name}</strong><small>{school.level || "SCHOOL"}</small></>}
           </div>
         </div>
         <div className="login-art">
@@ -815,11 +842,11 @@ function LoginScreen({
           </div>
         </div>
         <small className="login-copyright">
-          &copy; 2026 Northstar Academy &middot; Garissa, Kenya
+          &copy; {new Date().getFullYear()} {school.name}{school.location ? ` · ${school.location}` : ""}
         </small>
       </div>
       <div className="login-form-side">
-        <div className="login-top">Northstar Academy</div>
+        <div className="login-top">{school.name}</div>
         <form className="login-form" onSubmit={submit}>
           <div className="eyebrow">WELCOME BACK</div>
           <h1>Sign in to your account</h1>

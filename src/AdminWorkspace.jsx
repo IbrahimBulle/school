@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiDelete, apiDownload, apiGet, apiPost, apiPut } from "./api";
 import { FiBookOpen, FiCheck, FiClock, FiDownload, FiPlus, FiTrash2, FiUploadCloud, FiUsers } from "react-icons/fi";
 import FeeManagement from "./FeeManagement";
+import { printBrandedReport } from "./brandedReport";
 
 const read = (row, ...keys) => {
   for (const key of keys) {
@@ -80,7 +81,7 @@ function StateBadge({ value }) {
   );
 }
 
-export default function AdminWorkspace({ page, search = "", onNotify }) {
+export default function AdminWorkspace({ page, search = "", onNotify, school }) {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -444,6 +445,7 @@ export default function AdminWorkspace({ page, search = "", onNotify }) {
         classes={classes}
         terms={terms}
         marks={marks}
+        school={school}
       />
     );
   if (page === "Students")
@@ -588,7 +590,7 @@ function DataBackupPage({ onNotify }) {
   );
 }
 
-function Overview({ students, teachers, classes, terms, marks }) {
+function Overview({ students, teachers, classes, terms, marks, school }) {
   const activeTerm = terms.find(
     (term) => String(read(term, "status", "Status")).toLowerCase() === "active",
   );
@@ -629,7 +631,7 @@ function Overview({ students, teachers, classes, terms, marks }) {
           icon="◷"
         />
       </div>
-      <FinanceOverview classes={classes} />
+      <FinanceOverview classes={classes} school={school} />
       <div className="dashboard-grid">
         <section className="panel">
           <div className="panel-title">
@@ -787,7 +789,7 @@ function RecentPayments() {
   );
 }
 
-function FinanceOverview({ classes }) {
+function FinanceOverview({ classes, school }) {
   const [classBalances, setClassBalances] = useState([]);
   const [expandedClass, setExpandedClass] = useState("");
   const [loading, setLoading] = useState(true);
@@ -913,18 +915,21 @@ function FinanceOverview({ classes }) {
             const rate = item.total
               ? Math.min(100, Math.round((item.paid / item.total) * 100))
               : 0;
-            async function downloadPDF() {
+            function downloadPDF() {
               try {
-                const filename = `${
-                  item.name
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")
-                    .replace(/^-|-$/g, "") || "class"
-                }-fee-balances.pdf`;
-                await apiDownload(
-                  `/classes/${item.id}/fees/balances/pdf`,
-                  filename,
-                );
+                printBrandedReport({
+                  school,
+                  title: `${item.name} fee balances`,
+                  subtitle: `${item.students} students · Billed ${currency(item.total)} · Paid ${currency(item.paid)} · Remaining ${currency(item.remaining)}`,
+                  columns: ["Student", "Admission number", "Billed", "Paid", "Remaining"],
+                  rows: item.studentBalances.map((student) => [
+                    read(student, "studentName", "StudentName") || "Student",
+                    read(student, "admissionNumber", "AdmissionNumber") || "-",
+                    currency(read(student, "totalFees", "TotalFees")),
+                    currency(read(student, "amountPaid", "AmountPaid")),
+                    currency(read(student, "outstandingBalance", "OutstandingBalance")),
+                  ]),
+                });
               } catch (downloadError) {
                 setError(
                   downloadError.message || "Could not download the PDF.",
@@ -973,7 +978,7 @@ function FinanceOverview({ classes }) {
                         className="button secondary small"
                         onClick={downloadPDF}
                       >
-                        Download PDF
+                        Print / save PDF
                       </button>
                     </div>
                     <div className="finance-student-balance-heading">

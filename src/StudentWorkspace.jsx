@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiBookOpen, FiShield, FiStar, FiX } from "react-icons/fi";
-import { apiDownload, apiGet, apiPut } from "./api";
+import { apiGet, apiPut } from "./api";
+import { printBrandedReport } from "./brandedReport";
 
 const get = (row, ...keys) => {
   for (const key of keys) {
@@ -239,7 +240,8 @@ export function StudentDashboard({ onOpen }) {
   );
 }
 
-export function StudentResults() {
+export function StudentResults({ school }) {
+  const [profile, setProfile] = useState(null);
   const [terms, setTerms] = useState([]);
   const [selectedYear, setSelectedYear] = useState("");
   const [selectedTermID, setSelectedTermID] = useState("");
@@ -247,13 +249,13 @@ export function StudentResults() {
   const [error, setError] = useState("");
   const [termsLoading, setTermsLoading] = useState(true);
   const [resultsLoading, setResultsLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    Promise.allSettled([apiGet("/me/terms"), apiGet("/me/active-term")])
-      .then(([termResponse, activeResponse]) => {
+    Promise.allSettled([apiGet("/me/terms"), apiGet("/me/active-term"), apiGet("/me")])
+      .then(([termResponse, activeResponse, profileResponse]) => {
         if (!alive) return;
+        if (profileResponse.status === "fulfilled") setProfile(profileResponse.value);
         const available =
           termResponse.status === "fulfilled" &&
           Array.isArray(termResponse.value)
@@ -346,21 +348,23 @@ export function StudentResults() {
 
   async function downloadResultSlip() {
     if (!selectedTermID || !selectedTerm) return;
-    setDownloading(true);
     setError("");
     try {
-      const query = new URLSearchParams({
-        termid: selectedTermID,
-        year: String(get(selectedTerm, "year", "Year")),
+      printBrandedReport({
+        school,
+        title: "Student result slip",
+        subtitle: `${get(selectedTerm, "name", "Name")} ${get(selectedTerm, "year", "Year")} · ${get(profile, "name", "Name") || "Student"}${get(profile, "admissionNumber", "AdmissionNumber") ? ` · Admission ${get(profile, "admissionNumber", "AdmissionNumber")}` : ""}`,
+        columns: ["Unit", "Term", "Score", "Status"],
+        rows: results.map((row) => [
+          get(row, "unitName", "UnitName"),
+          `${get(selectedTerm, "name", "Name")} ${get(selectedTerm, "year", "Year")}`,
+          `${get(row, "score", "Score")}%`,
+          "Approved",
+        ]),
+        footer: "Unofficial results statement. An official record requires the school stamp and an authorised school official’s signature.",
       });
-      await apiDownload(
-        "/me/results/pdf?" + query.toString(),
-        "provisional-results-" + selectedYear + ".pdf",
-      );
     } catch (e) {
       setError(message(e));
-    } finally {
-      setDownloading(false);
     }
   }
 
@@ -385,6 +389,10 @@ export function StudentResults() {
         <div className="admin-loading">Loading academic terms...</div>
       ) : (
         <section className="panel">
+          <div className="result-school-brand">
+            {school?.logo ? <img src={school.logo} alt={`${school.name} logo`} /> : <span>{String(school?.name || "S").slice(0, 1).toUpperCase()}</span>}
+            <div><strong>{school?.name || "Your school"}</strong><small>{school?.level || school?.location || "Official school results"}</small></div>
+          </div>
           <div className="panel-title">
             <div>
               <h3>Approved results</h3>
@@ -396,10 +404,10 @@ export function StudentResults() {
             <div className="results-filters">
               <button
                 className="button primary small"
-                disabled={!selectedTermID || resultsLoading || downloading}
+                disabled={!selectedTermID || resultsLoading}
                 onClick={downloadResultSlip}
               >
-                {downloading ? "Preparing PDF..." : "Download result slip"}
+                Print / save result PDF
               </button>
               <label>
                 Year{" "}
