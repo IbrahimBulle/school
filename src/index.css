@@ -4321,3 +4321,97 @@ select:focus-visible {
     width: 130px;
   }
 }
+
+/* Prevent skeleton layouts from causing horizontal overflow */
+.app-loading-shell,
+.app-loading-shell .main-area,
+.app-loading-shell .content,
+.page-skeleton,
+.fee-skeleton {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.app-loading-shell .main-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-loading-shell .content {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Keep long skeleton rows within their panels */
+.skeleton-panel {
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.skeleton-table-row {
+  min-width: 0;
+}
+
+.sk-row-status {
+  flex-shrink: 0;
+}
+
+/* Tablet and mobile adjustments */
+@media (max-width: 600px) {
+  .skeleton-heading {
+    margin-bottom: 20px;
+  }
+
+  .skeleton-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .skeleton-stat {
+    padding: 13px;
+  }
+
+  .skeleton-panel {
+    padding: 14px;
+  }
+
+  .skeleton-panel-heading {
+    gap: 10px;
+  }
+
+  .sk-panel-subtitle {
+    max-width: 55vw;
+  }
+
+  .skeleton-table-row {
+    gap: 8px;
+  }
+
+  .sk-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sk-row-status {
+    width: 48px;
+  }
+
+  .app-loading-shell .content {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .app-loading-shell .skeleton-sidebar {
+    display: none;
+  }
+
+  .app-loading-shell .skeleton-topbar {
+    gap: 10px;
+  }
+
+  .app-loading-shell .sk-crumb {
+    width: min(130px, 60%);
+  }
+}
