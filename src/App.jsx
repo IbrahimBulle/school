@@ -6,6 +6,10 @@ import {
   FiUser, FiUsers, FiX,
 } from "react-icons/fi";
 import {
+  AppShellSkeleton,
+  FeeSkeleton,
+} from "./Skeleton";
+import {
   login as loginRequest,
   logout as logoutRequest,
   apiGet,
@@ -198,9 +202,9 @@ function App() {
   const displayName = accountName || roleLabels[role];
   const activeNav = navByRole[role];
 
-  if (sessionLoading)
-    return <div className="session-restore">Restoring your session</div>;
-
+ if (sessionLoading) {
+  return <AppShellSkeleton />;
+}
   // if (!school || setupOpen)
   //   return <SchoolSetup
   //     initialSchool={school}
@@ -557,8 +561,8 @@ function StudentFees({ onNotify }) {
         </div>
       )}
       {loading ? (
-        <div className="admin-loading">Loading fee account...</div>
-      ) : (
+  <FeeSkeleton />
+) : (
         <>
           <div className="fee-student-summary">
             <div>
