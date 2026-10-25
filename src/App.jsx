@@ -480,7 +480,7 @@ function StudentFees({ onNotify }) {
         ) {
           timer = window.setTimeout(
             () => setRevision((value) => value + 1),
-            5000,
+            15000,
           );
         }
         setError("");
