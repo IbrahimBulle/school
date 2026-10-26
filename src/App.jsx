@@ -92,6 +92,35 @@ function Toast({ toast, onDismiss }) {
   );
 }
 
+function passwordChangeRequired(...responses) {
+  const truthy = (value) =>
+    value === true || value === 1 ||
+    (typeof value === "string" && ["true", "1", "yes", "required"].includes(value.trim().toLowerCase()));
+
+  return responses.some((response) => {
+    if (!response || typeof response !== "object") return false;
+    const candidates = [
+      response.mustChangePassword,
+      response.MustChangePassword,
+      response.must_change_password,
+      response.passwordChangeRequired,
+      response.PasswordChangeRequired,
+      response.password_change_required,
+      response.requirePasswordChange,
+      response.require_password_change,
+      response.data?.mustChangePassword,
+      response.data?.MustChangePassword,
+      response.data?.must_change_password,
+      response.data?.passwordChangeRequired,
+      response.data?.password_change_required,
+    ];
+    if (candidates.some(truthy)) return true;
+
+    const message = String(response.message || response.Message || "").toLowerCase();
+    return message.includes("password change required") || message.includes("must change password");
+  });
+}
+
 function App() {
   const [role, setRole] = useState("admin");
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 850);
@@ -129,7 +158,7 @@ function App() {
     if (["admin", "teacher", "student"].includes(cachedSession?.role)) {
       setRole(cachedSession.role);
       setAccountName(cachedSession.name || "");
-      setMustChangePassword(Boolean(cachedSession.mustChangePassword));
+      setMustChangePassword(passwordChangeRequired(cachedSession));
       setLogin(false);
     }
     apiGet("/session")
@@ -137,7 +166,7 @@ function App() {
         if (!current || !["admin", "teacher", "student"].includes(session?.role)) return;
         setRole(session.role);
         setAccountName(session.name || "");
-        setMustChangePassword(Boolean(session.mustChangePassword));
+        setMustChangePassword(passwordChangeRequired(session));
         setLogin(false);
         sessionStorage.setItem(sessionKey, JSON.stringify(session));
       })
@@ -166,25 +195,47 @@ function App() {
   }
 
   async function handleLogin(credentials) {
+    // The login response is authoritative for the forced-password flag. Do not
+    // let a secondary /session request prevent the password screen from opening.
     const result = await loginRequest(credentials);
-    await apiGet("/session");
-    const authenticatedRole = result?.role;
-    if (!["admin", "teacher", "student"].includes(authenticatedRole)) {
+    const loginRole = result?.role || result?.Role;
+    if (!["admin", "teacher", "student"].includes(loginRole)) {
       throw new Error("The server returned an invalid account role.");
     }
-    setRole(authenticatedRole);
-    setAccountName(result?.name || result?.Name || credentials.username || "");
-    setPage("Overview");
-    setMustChangePassword(
-      Boolean(result?.mustChangePassword || result?.MustChangePassword),
-    );
-    sessionStorage.setItem("schoolmanagement.session", JSON.stringify({
+
+    let session = null;
+    try {
+      session = await apiGet("/session");
+    } catch (sessionError) {
+      // Login already succeeded; fall back to the login response if session
+      // refresh fails for any reason.
+      console.warn("Could not refresh session after login:", sessionError);
+    }
+
+    const authenticatedRole = session?.role || session?.Role || loginRole;
+    const name =
+      result?.name || result?.Name ||
+      session?.name || session?.Name ||
+      credentials.username || "";
+    const needsPasswordChange = passwordChangeRequired(result, session);
+    const savedSession = {
+      ...(session && typeof session === "object" ? session : {}),
       role: authenticatedRole,
-      name: result?.name || result?.Name || credentials.username || "",
-      mustChangePassword: Boolean(result?.mustChangePassword || result?.MustChangePassword),
-    }));
+      name,
+      mustChangePassword: needsPasswordChange,
+    };
+
+    setRole(authenticatedRole);
+    setAccountName(name);
+    setPage("Overview");
+    setMustChangePassword(needsPasswordChange);
+    sessionStorage.setItem("schoolmanagement.session", JSON.stringify(savedSession));
     setLogin(false);
-    notify("Signed in successfully");
+    notify(
+      needsPasswordChange
+        ? "Please change your password to continue"
+        : "Signed in successfully"
+    );
   }
 
   async function handleLogout() {
@@ -195,6 +246,7 @@ function App() {
     }
     setLogin(true);
     setAccountName("");
+    setMustChangePassword(false);
     sessionStorage.removeItem("schoolmanagement.session");
     setPage("Overview");
   }
@@ -236,6 +288,15 @@ function App() {
         onSave={async (body) => {
           await apiPut("/me/password", body);
           setMustChangePassword(false);
+          try {
+            const cached = JSON.parse(sessionStorage.getItem("schoolmanagement.session") || "{}");
+            sessionStorage.setItem("schoolmanagement.session", JSON.stringify({
+              ...cached,
+              mustChangePassword: false,
+            }));
+          } catch {
+            sessionStorage.removeItem("schoolmanagement.session");
+          }
           notify("Password updated");
         }}
         onLogout={handleLogout}
