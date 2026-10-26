@@ -324,6 +324,8 @@ export function TeacherStudents() {
           <p>Students in classes assigned to you.</p>
         </div>
         <input
+          id="teacher-student-search"
+          name="studentSearch"
           className="form-input"
           placeholder="Search name or admission number"
           value={search}
@@ -507,6 +509,8 @@ export function Gradebook() {
             </div>
             <label className="field-label">Class</label>
             <select
+              id="teacher-class-filter"
+              name="classId"
               className="form-input"
               value={classID}
               onChange={(e) => {
@@ -533,6 +537,8 @@ export function Gradebook() {
                 </small>
                 <label className="field-label">Unit</label>
                 <select
+                  id="teacher-unit-filter"
+                  name="assignmentId"
                   className="form-input"
                   value={assignmentID}
                   onChange={(e) => setAssignmentID(e.target.value)}
@@ -639,6 +645,8 @@ function MarkRow({ mark, onSave }) {
       {pending ? (
         <>
           <input
+            id={`mark-score-${id(mark)}`}
+            name="score"
             className="form-input score-input"
             type="number"
             min="0"

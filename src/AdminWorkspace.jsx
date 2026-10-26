@@ -612,7 +612,7 @@ function DataBackupPage({ onNotify }) {
       <section className="panel" style={{ maxWidth: 760, padding: 24, marginTop: 18 }}>
         <h2>Restore from a backup</h2>
         <p>Choose a backup JSON file. Restoring replaces all current records in this school database.</p>
-        <label className="admin-field">Backup file<input type="file" accept="application/json,.json" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
+        <label className="admin-field">Backup file<input id="backup-file" name="backupFile" type="file" accept="application/json,.json" onChange={(event) => setFile(event.target.files?.[0] || null)} /></label>
         <ActionButton secondary icon={FiUploadCloud} onClick={restore}>{busy ? "Restoring…" : "Restore backup"}</ActionButton>
       </section>
     </>
@@ -771,11 +771,11 @@ function RecentPayments() {
         <div className="recent-payments-filters">
           <label>
             From
-            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <input id="payments-from" name="fromDate" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
           </label>
           <label>
             To
-            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+            <input id="payments-to" name="toDate" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
           </label>
         </div>
       </div>
@@ -1875,6 +1875,8 @@ function ClassBalancePanel({ classes }) {
           <p>Balances calculated from fee accounts and completed payments.</p>
         </div>
         <select
+          id="class-balances-class"
+          name="classId"
           className="filter-button"
           value={classId}
           onChange={(event) => setClassId(event.target.value)}
@@ -2503,6 +2505,8 @@ function AdminDialog({ dialog, data, error, saving, onSubmit, onClose }) {
           <label className="admin-field">
             Student
             <select
+              id="admin-payment-student"
+              name="studentId"
               required
               value={selectedStudent}
               onChange={(event) => setSelectedStudent(event.target.value)}

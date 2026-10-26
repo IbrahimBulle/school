@@ -412,6 +412,8 @@ export function StudentResults({ school }) {
               <label>
                 Year{" "}
                 <select
+                  id="results-year"
+                  name="resultsYear"
                   value={selectedYear}
                   onChange={(event) => chooseYear(event.target.value)}
                 >
@@ -425,6 +427,8 @@ export function StudentResults({ school }) {
               <label>
                 Term{" "}
                 <select
+                  id="results-term"
+                  name="resultsTerm"
                   value={selectedTermID}
                   onChange={(event) => setSelectedTermID(event.target.value)}
                 >

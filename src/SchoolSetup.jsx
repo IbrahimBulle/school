@@ -68,7 +68,7 @@ export default function SchoolSetup({ initialSchool, onSave, onCancel, firstRun 
           <span className="school-logo-preview">{school.logo ? <img src={school.logo} alt="School logo preview" /> : <FiImage />}</span>
           <span><b>{school.logo ? "Change school logo" : "Add a school logo"}</b><small>PNG, JPG or SVG · up to 1 MB</small></span>
           <span className="button secondary small"><FiUpload /> Upload</span>
-          <input type="file" accept="image/*" onChange={chooseLogo} />
+          <input id="school-logo-file" name="schoolLogo" type="file" accept="image/*" onChange={chooseLogo} />
         </label>
         {school.logo && <button className="school-logo-remove" type="button" onClick={() => update("logo", "")}><FiX /> Remove logo</button>}
 

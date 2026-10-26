@@ -326,6 +326,8 @@ function passwordChangeRequired(...responses) {
             <label className="search-box">
               <Icon><FiSearch /></Icon>
               <input
+                id="workspace-search"
+                name="workspaceSearch"
                 placeholder="Search anything..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -816,7 +818,9 @@ function LoginScreen({
         password: form.get("password"),
       });
     } catch (loginError) {
-      const message = loginError.message || "Unable to sign in. Check your details and try again.";
+      const message = loginError.status === 401
+        ? "Sign-in failed. Staff and admins should use their registered phone number; students should use their ADM admission number. Check the password and try again."
+        : loginError.message || "Unable to sign in. Check your details and try again.";
       setError(message);
       onNotify(message, "error");
     } finally {
@@ -867,14 +871,14 @@ function LoginScreen({
           <h1>Sign in to your account</h1>
           <p>Enter your details to access your school workspace.</p>
           <label className="field-label" htmlFor="username">
-            Username
+            Phone number or admission number
           </label>
           <input
             name="username"
             className="form-input"
             id="username"
             autoComplete="username"
-            placeholder="Username"
+            placeholder="e.g. 0712345678 or ADM-2026-0001"
             required
           />
           <div className="field-heading">
@@ -901,7 +905,7 @@ function LoginScreen({
           </div>
           <div className="login-options">
             <span className="login-hint">
-              Use the credentials provided by your school.
+              Staff/admin: registered phone number. Students: admission number.
             </span>
             <button
               type="button"

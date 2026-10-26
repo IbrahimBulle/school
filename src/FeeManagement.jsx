@@ -456,6 +456,8 @@ export default function FeeManagement({ onNotify }) {
                 </p>
               </div>
               <select
+                id="fee-management-student"
+                name="studentId"
                 className="filter-button"
                 value={selectedStudent}
                 onChange={(event) => setSelectedStudent(event.target.value)}
@@ -695,11 +697,11 @@ export default function FeeManagement({ onNotify }) {
               <>
                 <label className="admin-field">
                   Invoice
-                  <input value={dialog.invoiceId} readOnly />
+                  <input id="fee-payment-invoice" name="invoiceDisplay" value={dialog.invoiceId} readOnly />
                 </label>
                 <label className="admin-field">
                   Outstanding balance
-                  <input value={money(dialog.balance)} readOnly />
+                  <input id="fee-payment-balance" name="balanceDisplay" value={money(dialog.balance)} readOnly />
                 </label>
                 <input
                   type="hidden"
