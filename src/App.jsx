@@ -806,6 +806,23 @@ function LoginScreen({
 }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [bootstrapAvailable, setBootstrapAvailable] = useState(false);
+  const [bootstrapMode, setBootstrapMode] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    apiGet("/admin/bootstrap/status")
+      .then((status) => {
+        if (active) setBootstrapAvailable(Boolean(status?.available));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!active) return;
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function submit(event) {
     event.preventDefault();
@@ -813,13 +830,25 @@ function LoginScreen({
     setSubmitting(true);
     const form = new FormData(event.currentTarget);
     try {
+      if (bootstrapMode) {
+        const name = String(form.get("bootstrapName") || "").trim();
+        const phoneNumber = String(form.get("bootstrapPhoneNumber") || "").trim();
+        const password = String(form.get("password") || "");
+        if (password !== String(form.get("confirmPassword") || "")) {
+          throw new Error("The passwords do not match.");
+        }
+        await apiPost("/admin/bootstrap", { name, phoneNumber, password });
+        setBootstrapAvailable(false);
+        await onLogin({ username: phoneNumber, password });
+        return;
+      }
       await onLogin({
         username: form.get("username").trim(),
         password: form.get("password"),
       });
     } catch (loginError) {
       const message = loginError.status === 401
-        ? "Sign-in failed. Staff and admins should use their registered phone number; students should use their ADM admission number. Check the password and try again."
+        ? "Sign-in failed. Check the password and try again."
         : loginError.message || "Unable to sign in. Check your details and try again.";
       setError(message);
       onNotify(message, "error");
@@ -867,56 +896,41 @@ function LoginScreen({
       <div className="login-form-side">
         <div className="login-top">{school.name}</div>
         <form className="login-form" onSubmit={submit}>
-          <div className="eyebrow">WELCOME BACK</div>
-          <h1>Sign in to your account</h1>
-          <p>Enter your details to access your school workspace.</p>
-          <label className="field-label" htmlFor="username">
-            Phone number or admission number
-          </label>
-          <input
-            name="username"
-            className="form-input"
-            id="username"
-            autoComplete="username"
-            placeholder="e.g. 0712345678 or ADM-2026-0001"
-            required
-          />
-          <div className="field-heading">
-            <label className="field-label" htmlFor="password">
-              Password
-            </label>
-          </div>
-          <div className="password-field">
-            <input
-              name="password"
-              className="form-input"
-              id="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              placeholder="Password"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? "Hide" : "Show"}
-            </button>
-          </div>
+          <div className="eyebrow">{bootstrapMode ? "FIRST-TIME SETUP" : "WELCOME BACK"}</div>
+          <h1>{bootstrapMode ? "Create the first administrator" : "Sign in to your account"}</h1>
+          <p>{bootstrapMode ? "Set up the school administrator account. This option closes after the first admin is created." : "Enter your details to access your school workspace."}</p>
+          {bootstrapMode ? (
+            <>
+              <label className="field-label" htmlFor="bootstrap-name">Administrator name</label>
+              <input id="bootstrap-name" name="bootstrapName" className="form-input" autoComplete="name" required />
+              <label className="field-label" htmlFor="bootstrap-phone">Phone number</label>
+              <input id="bootstrap-phone" name="bootstrapPhoneNumber" className="form-input" type="tel" autoComplete="tel" placeholder="0712345678" required />
+              <label className="field-label" htmlFor="password">Password</label>
+              <div className="password-field">
+                <input id="password" name="password" className="form-input" type={showPassword ? "text" : "password"} autoComplete="new-password" minLength="8" required />
+              </div>
+              <label className="field-label" htmlFor="confirm-password">Confirm password</label>
+              <input id="confirm-password" name="confirmPassword" className="form-input" type="password" autoComplete="new-password" minLength="8" required />
+              <small className="login-hint">Use uppercase and lowercase letters, a number, and a symbol.</small>
+            </>
+          ) : (
+            <>
+              <label className="field-label" htmlFor="username">Phone number or admission number</label>
+              <input name="username" className="form-input" id="username" autoComplete="username" placeholder="e.g. 0712345678 or ADM-2026-0001" required />
+              <div className="field-heading">
+                <label className="field-label" htmlFor="password">Password</label>
+              </div>
+              <div className="password-field">
+                <input name="password" className="form-input" id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Password" required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Hide" : "Show"}</button>
+              </div>
+            </>
+          )}
           <div className="login-options">
             <span className="login-hint">
-              Staff/admin: registered phone number. Students: admission number.
+              {bootstrapMode ? "Your admin account will be created in this school database." : "Staff/admin: registered phone number. Students: admission number."}
             </span>
-            <button
-              type="button"
-              onClick={() =>
-                setError(
-                  "Please contact your school administrator to reset your password.",
-                )
-              }
-            >
-              Forgot password?
-            </button>
+            {!bootstrapMode && <button type="button" onClick={() => setError("Please contact your school administrator to reset your password.")}>Forgot password?</button>}
           </div>
           {error && (
             <div className="login-error" role="alert">
@@ -932,15 +946,27 @@ function LoginScreen({
               "Signing in..."
             ) : (
               <>
-                Sign in <FiArrowRight aria-hidden="true" />
+              {bootstrapMode ? "Create administrator" : "Sign in"} <FiArrowRight aria-hidden="true" />
               </>
             )}
           </button>
           <div className="login-divider">
             <span />
-            secure school access
+            {bootstrapMode ? "one-time administrator setup" : "secure school access"}
             <span />
           </div>
+          {bootstrapAvailable && (
+            <button
+              type="button"
+              className="help-login"
+              onClick={() => {
+                setBootstrapMode((mode) => !mode);
+                setError("");
+              }}
+            >
+              {bootstrapMode ? "Back to sign in" : "Set up the first administrator"}
+            </button>
+          )}
           <button
             type="button"
             className="help-login"
