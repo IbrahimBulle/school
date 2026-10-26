@@ -107,7 +107,7 @@ export function StudentDashboard({ onOpen }) {
       <header className="page-heading">
         <div>
           <span className="eyebrow">STUDENT OVERVIEW</span>
-          <h1>Habari, {name}</h1>
+          <h1>Hi, {name}</h1>
           <p>
             {get(term, "name", "Name") || "Your school"}{" "}
             {get(term, "year", "Year")} - Your learning and school account.
