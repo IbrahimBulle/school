@@ -25,7 +25,7 @@ const rowKey = (row) => {
   return missingRowKeys.get(row);
 };
 const money = (value) =>
-                  <strong>{value || "-"}</strong>
+  `KES ${Number(value || 0).toLocaleString("en-KE", { maximumFractionDigits: 2 })}`;
 const message = (error) =>
   error?.message || "Could not load your school information.";
 
@@ -354,12 +354,12 @@ export function StudentResults({ school }) {
         school,
         title: "Student result slip",
         subtitle: `${get(selectedTerm, "name", "Name")} ${get(selectedTerm, "year", "Year")} · ${get(profile, "name", "Name") || "Student"}${get(profile, "admissionNumber", "AdmissionNumber") ? ` · Admission ${get(profile, "admissionNumber", "AdmissionNumber")}` : ""}`,
-        columns: ["Unit", "Term", "Score", "Status"],
+        columns: ["Unit", "Term", "Score", "CBC level"],
         rows: results.map((row) => [
           get(row, "unitName", "UnitName"),
           `${get(selectedTerm, "name", "Name")} ${get(selectedTerm, "year", "Year")}`,
           `${get(row, "score", "Score")}%`,
-          "Approved",
+          get(row, "gradeCode", "GradeCode") || "—",
         ]),
         footer: "Unofficial results statement. An official record requires the school stamp and an authorised school official’s signature.",
       });
@@ -445,7 +445,7 @@ export function StudentResults({ school }) {
               <span>UNIT</span>
               <span>TERM</span>
               <span>SCORE</span>
-              <span>STATUS</span>
+              <span>CBC LEVEL</span>
             </div>
             {resultsLoading ? (
               <p className="empty-state">Loading results...</p>
@@ -458,10 +458,7 @@ export function StudentResults({ school }) {
                     {get(selectedTerm, "year", "Year")}
                   </span>
                   <span>{get(row, "score", "Score")}%</span>
-                  <span className="status active">
-                    <i />
-                    Approved
-                  </span>
+                  <span>{get(row, "gradeCode", "GradeCode") || "—"}</span>
                 </div>
               ))
             )}
@@ -477,10 +474,8 @@ export function StudentResults({ school }) {
       <aside className="results-disclaimer" aria-label="Results disclaimer">
         <strong>Important notice</strong>
         <p>
-          Grades are reported using the school grading scale from A to E;
-          Grades use the school scale from A to E; "Repeat" means the student must repeat the unit.
-          An asterisk (*) indicates that a mark is missing or has not yet been
-          recorded.
+          Results use the school's CBC grading bands. A dash means that no
+          grading band currently covers the recorded score.
         </p>
         <p>
           This results statement is issued for information purposes only. It is

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  FiArrowRight, FiBell, FiBookOpen, FiCheck, FiChevronDown, FiDatabase, FiDollarSign,
+  FiArrowRight, FiAward, FiBell, FiBookOpen, FiCheck, FiDatabase, FiDollarSign,
   FiFileText, FiGrid, FiMenu, FiMoreHorizontal, FiSearch, FiSettings,
   FiFeather, FiStar, FiSun,
   FiUser, FiUsers, FiX,
@@ -19,7 +19,7 @@ import {
 import AdminWorkspace from "./AdminWorkspace";
 import { TeacherDashboard as LiveTeacherDashboard, TeacherClasses as LiveTeacherClasses, TeacherStudents as LiveTeacherStudents, Gradebook as LiveGradebook } from "./TeacherWorkspace";
 import { StudentDashboard as LiveStudentDashboard, StudentResults as LiveStudentResults, StudentProfile as LiveStudentProfile } from "./StudentWorkspace";
-import SchoolSetup, { readSchoolSetup } from "./SchoolSetup";
+import { readSchoolSetup } from "./SchoolSetup";
 
 const navByRole = {
   admin: [
@@ -30,12 +30,12 @@ const navByRole = {
         ["Students", FiUsers],
         ["Teachers", FiUser],
         ["Classes & units", FiBookOpen],
+        ["Grading system", FiAward],
       ],
     },
     {
       group: "SCHOOL",
       items: [
-        ["Config", FiSettings],
         ["Academics", FiBookOpen],
         ["Fees & payments", FiDollarSign],
         ["Reports", FiFileText],
@@ -104,18 +104,15 @@ function App() {
   const [login, setLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [mustChangePassword, setMustChangePassword] = useState(false);
-  // const [school, setSchool] = useState(readSchoolSetup);
-  const [school, setSchool] = useState(
+  const [school] = useState(
   () =>
     readSchoolSetup() || {
-      name: "Notstar Academy",
-      level: "SCHOOL",
-      location: "",
-      logo: "",
+      name: "Mwangaza Academy",
+      level: "Primary & Junior",
+      location: "Garissa,Kenya",
+      logo: "./logo.png",
     },
 );
-  const [setupOpen, setSetupOpen] = useState(false);
-
   const [sessionLoading, setSessionLoading] = useState(true);
   useEffect(() => {
     let current = true;
@@ -226,24 +223,6 @@ function passwordChangeRequired(...responses) {
  if (sessionLoading) {
   return <AppShellSkeleton />;
 }
-  // The school-switch button opens this setup screen. Keep it separate from
-  // the main workspace so saving/cancelling has a predictable result.
-  if (setupOpen) {
-    return (
-      <SchoolSetup
-        initialSchool={school}
-        firstRun={!school}
-        onCancel={() => setSetupOpen(false)}
-        onSave={(details) => {
-          localStorage.setItem("schoolmanagement.school", JSON.stringify(details));
-          setSchool(details);
-          setSetupOpen(false);
-          notify("School details saved");
-        }}
-      />
-    );
-  }
-
   if (login)
     return (
       <>
@@ -290,14 +269,6 @@ function passwordChangeRequired(...responses) {
             {school.logo ? <img className="brand-logo" src={school.logo} alt="" /> : <><strong>{school.name}</strong><small>{school.level || "SCHOOL"}</small></>}
           </div>
         </div>
-        <button type="button" className="school-switch" onClick={() => setSetupOpen(true)} aria-label="Edit school details">
-          <div className="school-emblem">{school.logo ? <img src={school.logo} alt="" /> : school.name.slice(0, 1).toUpperCase()}</div>
-          <div className="school-meta">
-            <strong>{school.name}</strong>
-            <small>{school.level || school.location || "School profile"}</small>
-          </div>
-          <span className="chevron"><FiChevronDown /></span>
-        </button>
         <nav className="side-nav" aria-label="Main navigation">
           {activeNav.map((section) => (
             <div className="nav-section" key={section.group}>
@@ -378,18 +349,7 @@ function passwordChangeRequired(...responses) {
         </header>
 
         <div className="content">
-          {role === "admin" && page === "Config" ? (
-            <SchoolSetup
-              embedded
-              initialSchool={school}
-              onCancel={() => setPage("Overview")}
-              onSave={(details) => {
-                localStorage.setItem("schoolmanagement.school", JSON.stringify(details));
-                setSchool(details);
-                notify("School configuration saved");
-              }}
-            />
-          ) : role === "admin" && (
+          {role === "admin" && (
             <AdminWorkspace page={page} search={search} onNotify={notify} school={school} />
           )}
           {role === "teacher" && page === "Overview" && (

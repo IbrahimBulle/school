@@ -111,6 +111,7 @@ export default function AdminWorkspace({ page, search = "", onNotify, school }) 
           "/teachers",
           "/teaching_assignments",
         ],
+        "Grading system": ["/grading-scales"],
         Academics: ["/terms", "/marks"],
         "Fees & payments": [],
         Reports: ["/students", "/teachers", "/classes", "/terms", "/marks"],
@@ -174,6 +175,7 @@ export default function AdminWorkspace({ page, search = "", onNotify, school }) 
   const units = rows(data["/units"]);
   const terms = rows(data["/terms"]);
   const marks = rows(data["/marks"]);
+  const gradingScales = rows(data["/grading-scales"]);
   const feeStructures = rows(data["/fee-structures"]);
   const assignments = rows(data["/teaching_assignments"]);
   const pagedStudents = rows(
@@ -250,6 +252,24 @@ export default function AdminWorkspace({ page, search = "", onNotify, school }) 
       } else if (actionType === "edit-unit") {
         await apiPut(`/units/${dialog.record.id}`, { name: getText("name") });
         closeDialog("Unit updated");
+      } else if (actionType === "grading-scale") {
+        await apiPost("/grading-scales", {
+          code: getText("code"),
+          performanceLevel: getText("performanceLevel"),
+          minScore: Number(getText("minScore")),
+          maxScore: Number(getText("maxScore")),
+          points: Number(getText("points")),
+        });
+        closeDialog("CBC grading level added");
+      } else if (actionType === "edit-grading-scale") {
+        await apiPut(`/grading-scales/${dialog.record.id}`, {
+          code: getText("code"),
+          performanceLevel: getText("performanceLevel"),
+          minScore: Number(getText("minScore")),
+          maxScore: Number(getText("maxScore")),
+          points: Number(getText("points")),
+        });
+        closeDialog("CBC grading level updated");
       } else if (actionType === "assignment") {
         const classId = getText("classId");
         const unitId = getText("unitId");
@@ -483,6 +503,15 @@ export default function AdminWorkspace({ page, search = "", onNotify, school }) 
         createAssignment={() => setDialog("assignment")}
         editClass={(record) => setDialog({ type: "edit-class", record })}
         editUnit={(record) => setDialog({ type: "edit-unit", record })}
+        remove={removeRecord}
+      />
+    );
+  if (page === "Grading system")
+    content = (
+      <GradingSystemPage
+        gradingScales={gradingScales}
+        create={() => setDialog("grading-scale")}
+        edit={(record) => setDialog({ type: "edit-grading-scale", record })}
         remove={removeRecord}
       />
     );
@@ -1416,6 +1445,76 @@ function ClassesPage({
   );
 }
 
+function GradingSystemPage({ gradingScales, create, edit, remove }) {
+  return (
+    <>
+      <Heading
+        eyebrow="ASSESSMENT SETUP"
+        title="CBC grading system"
+        subtitle="Manage score bands and performance levels used on student result slips."
+        actions={<ActionButton onClick={create} icon={FiPlus}>Add grading level</ActionButton>}
+      />
+      <section className="panel">
+        <div className="panel-title">
+          <div>
+            <h3>Performance levels</h3>
+            <p>{gradingScales.length} grading levels · scores from 0 to 100</p>
+          </div>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>GRADE</th>
+                <th>PERFORMANCE LEVEL</th>
+                <th>SCORE RANGE</th>
+                <th>POINTS</th>
+                <th>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {gradingScales.map((item) => (
+                <tr key={idOf(item)}>
+                  <td><strong>{read(item, "code", "Code")}</strong></td>
+                  <td>{read(item, "performanceLevel", "PerformanceLevel")}</td>
+                  <td>{read(item, "minScore", "MinScore")}–{read(item, "maxScore", "MaxScore")}%</td>
+                  <td>{read(item, "points", "Points")}</td>
+                  <td>
+                    <button
+                      className="button secondary small"
+                      onClick={() => edit({
+                        id: idOf(item),
+                        code: read(item, "code", "Code"),
+                        performanceLevel: read(item, "performanceLevel", "PerformanceLevel"),
+                        minScore: read(item, "minScore", "MinScore"),
+                        maxScore: read(item, "maxScore", "MaxScore"),
+                        points: read(item, "points", "Points"),
+                      })}
+                    >
+                      Edit
+                    </button>{" "}
+                    <button
+                      className="row-menu"
+                      aria-label={`Delete grading level ${read(item, "code", "Code")}`}
+                      onClick={() => remove(`/grading-scales/${idOf(item)}`, "grading level")}
+                    >
+                      <FiTrash2 />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!gradingScales.length && <p className="empty-state">No grading levels configured.</p>}
+        </div>
+      </section>
+      <p className="admin-footnote">
+        CBC result bands follow the KNEC eight-level scale by default. Score ranges can be edited for your school; scores are rounded to the nearest whole percentage before grading.
+      </p>
+    </>
+  );
+}
+
 function AcademicsPage({ terms, marks, create, edit, onStatus, onDeleteMark }) {
   return (
     <>
@@ -1969,6 +2068,8 @@ function AdminDialog({ dialog, data, error, saving, onSubmit, onClose }) {
       "edit-class": "Rename class",
       unit: "Add unit",
       "edit-unit": "Rename unit",
+      "grading-scale": "Add CBC grading level",
+      "edit-grading-scale": "Edit CBC grading level",
       assignment: "Assign teacher",
       "student-status": "Update student",
       "teacher-status": "Update teacher status",
@@ -2130,6 +2231,68 @@ function AdminDialog({ dialog, data, error, saving, onSubmit, onClose }) {
             Unit / subject name
             <input name="name" required defaultValue={record.name || ""} />
           </label>
+        )}
+        {["grading-scale", "edit-grading-scale"].includes(type) && (
+          <>
+            <label className="admin-field">
+              Grade code
+              <input
+                name="code"
+                required
+                maxLength="12"
+                placeholder="EE1"
+                defaultValue={record.code || ""}
+              />
+            </label>
+            <label className="admin-field">
+              Performance level
+              <input
+                name="performanceLevel"
+                required
+                placeholder="Exceeding Expectation"
+                defaultValue={record.performanceLevel || ""}
+              />
+            </label>
+            <label className="admin-field">
+              Minimum score (%)
+              <input
+                name="minScore"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                required
+                defaultValue={record.minScore ?? ""}
+              />
+            </label>
+            <label className="admin-field">
+              Maximum score (%)
+              <input
+                name="maxScore"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                required
+                defaultValue={record.maxScore ?? ""}
+              />
+            </label>
+            <label className="admin-field">
+              Points
+              <input
+                name="points"
+                type="number"
+                min="1"
+                max="8"
+                step="1"
+                required
+                defaultValue={record.points ?? ""}
+              />
+            </label>
+            <small className="admin-help">
+              A score band cannot overlap another grading level.
+            </small>
+          </>
         )}
         {type === "assignment" && (
           <>
