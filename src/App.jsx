@@ -226,17 +226,23 @@ function passwordChangeRequired(...responses) {
  if (sessionLoading) {
   return <AppShellSkeleton />;
 }
-  // if (!school || setupOpen)
-  //   return <SchoolSetup
-  //     initialSchool={school}
-  //     firstRun={!school}
-  //     onCancel={() => setSetupOpen(false)}
-  //     onSave={(details) => {
-  //       localStorage.setItem("schoolmanagement.school", JSON.stringify(details));
-  //       setSchool(details);
-  //       setSetupOpen(false);
-  //     }}
-  //   />;
+  // The school-switch button opens this setup screen. Keep it separate from
+  // the main workspace so saving/cancelling has a predictable result.
+  if (setupOpen) {
+    return (
+      <SchoolSetup
+        initialSchool={school}
+        firstRun={!school}
+        onCancel={() => setSetupOpen(false)}
+        onSave={(details) => {
+          localStorage.setItem("schoolmanagement.school", JSON.stringify(details));
+          setSchool(details);
+          setSetupOpen(false);
+          notify("School details saved");
+        }}
+      />
+    );
+  }
 
   if (login)
     return (
@@ -522,14 +528,28 @@ function StudentFees({ onNotify }) {
   async function startPayment(event) {
     event.preventDefault();
     if (!selected) return;
+
+    const paymentAmount = Number(amount);
+    const balance = Number(rowValue(selected, "balance", "Balance") || 0);
+    if (!Number.isInteger(paymentAmount) || paymentAmount < 1 || paymentAmount > balance) {
+      setError(`Enter a whole KES amount between 1 and ${Math.floor(balance).toLocaleString("en-KE")}.`);
+      return;
+    }
+
+    const normalizedPhone = phoneNumber.trim().replace(/[\s-]/g, "");
+    if (!/^(?:254|0)(?:7|1)\d{8}$/.test(normalizedPhone)) {
+      setError("Enter a valid Kenyan Safaricom number, e.g. 0712345678, 0112345678, or 254712345678.");
+      return;
+    }
+
     setBusy(true);
     setError("");
     try {
       const result = await apiPost("/me/payments", {
         studentFeeAccountId: rowValue(selected, "id", "ID"),
-        amount,
+        amount: String(paymentAmount),
         method: "mpesa",
-        phoneNumber,
+        phoneNumber: normalizedPhone,
       });
       setSelected(null);
       setPhoneNumber("");
